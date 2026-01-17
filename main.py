@@ -1,7 +1,5 @@
 import vk_api
 import requests
-import schedule
-import time
 from datetime import datetime, timedelta
 
 # ================= НАСТРОЙКИ =================
@@ -9,7 +7,6 @@ VK_TOKEN = "vk1.a.GpXji44Pfs8CvNddLvUvBTFegnCSf9q5_uzhryyLzEV_3dJ9WoJmC58mfp0oN1
 GROUP_ID = "228816972"
 WEATHER_API_KEY = "3cbf1f5ccd9356a53c4a3ff85b9c1b21"
 CITY = "Dubai"
-TIME_TO_POST = "04:00" 
 # =============================================
 
 def get_weather():
@@ -23,6 +20,7 @@ def get_weather():
         humidity = res["main"]["humidity"]
         wind = res["wind"]["speed"]
         
+        # Рассчитываем время с учетом часового пояса Дубая (UTC+4)
         sunrise = (datetime.fromtimestamp(res["sys"]["sunrise"]) + timedelta(hours=4)).strftime('%H:%M')
         sunset = (datetime.fromtimestamp(res["sys"]["sunset"]) + timedelta(hours=4)).strftime('%H:%M')
 
@@ -61,34 +59,14 @@ def post_to_vk():
     try:
         vk_session = vk_api.VkApi(token=VK_TOKEN)
         vk = vk_session.get_api()
+        # ID группы в VK API передается со знаком минус
         vk.wall.post(owner_id=-int(GROUP_ID), from_group=1, message=message)
         print(f"✅ Пост успешно опубликован в {datetime.now()}")
     except Exception as e:
         print(f"❌ Ошибка публикации в ВК: {e}")
 
-schedule.every().day.at(TIME_TO_POST).do(post_to_vk)
-
-print(f"🤖 Бот запущен! Он будет публиковать пост ежедневно в {TIME_TO_POST} (по UTC).")
-
-while True:
-    schedule.run_pending()
-
-    time.sleep(30)
-    import os
-import threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
-
-# Создаем простейший веб-сервер, чтобы Render не выключал бота
-class SimpleHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"Bot is running!")
-
-def run_server():
-    port = int(os.environ.get("PORT", 10000))
-    server = HTTPServer(('0.0.0.0', port), SimpleHandler)
-    server.serve_forever()
-
-# Запускаем сервер в отдельном потоке, чтобы он не мешал боту
-threading.Thread(target=run_server, daemon=True).start()
+# ГЛАВНЫЙ БЛОК: Запускает отправку СРАЗУ при включении файла
+if __name__ == "__main__":
+    print("🚀 Запуск процесса публикации...")
+    post_to_vk()
+    print("🏁 Работа завершена.")
